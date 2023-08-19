@@ -1,6 +1,8 @@
 package com.hibiscusmc.hmccosmetics.user;
 
 import com.google.common.collect.HashBiMap;
+import com.hibiscusmc.hmccosmetics.nms.PacketEntity;
+import com.hibiscusmc.hmccosmetics.nms.PacketPlayer;
 import com.hibiscusmc.hmccosmetics.util.ServerUtils;
 import org.bukkit.entity.Entity;
 import org.bukkit.entity.EntityType;
@@ -39,10 +41,11 @@ public class CosmeticUsers {
 
     @Nullable
     public static CosmeticUser getUser(int entityId) {
-        Entity entity = ServerUtils.getEntity(entityId);
+        PacketEntity entity = ServerUtils.getEntity(entityId);
         if (entity == null) return null;
-        if (entity.getType().equals(EntityType.PLAYER)) return null;
-        return COSMETIC_USERS.get(entity.getUniqueId());
+        //if (entity.getType().equals(EntityType.PLAYER)) return null;
+        if (!(entity instanceof final PacketPlayer player)) return null;
+        return COSMETIC_USERS.get(player.getUuid());
     }
 
     public static Set<CosmeticUser> values() {

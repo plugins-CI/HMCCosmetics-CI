@@ -119,7 +119,8 @@ public class UserWardrobeManager {
                 if (user.getUserBackpackManager() == null) user.respawnBackpack();
                 user.getUserBackpackManager().getArmorStand().teleport(npcLocation.clone().add(0, 2, 0));
                 NMSHandlers.getHandler().equipmentSlotUpdate(user.getUserBackpackManager().getFirstArmorStandId(), EquipmentSlot.HEAD, user.getUserCosmeticItem(user.getCosmetic(CosmeticSlot.BACKPACK)), viewer);
-                PacketManager.ridingMountPacket(NPC_ID, user.getUserBackpackManager().getFirstArmorStandId(), viewer);
+                user.getUserBackpackManager().getArmorStand().setRiding(NPC_ID);
+                //PacketManager.ridingMountPacket(NPC_ID, user.getUserBackpackManager().getFirstArmorStandId(), viewer);
             }
 
             if (user.hasCosmeticInSlot(CosmeticSlot.BALLOON)) {
@@ -130,7 +131,7 @@ public class UserWardrobeManager {
 
                 Location balloonLocation = npcLocation.clone().add(cosmetic.getBalloonOffset());
                 PacketManager.sendTeleportPacket(user.getBalloonManager().getPufferfishBalloonId(), balloonLocation , false, viewer);
-                user.getBalloonManager().getModelEntity().teleport(balloonLocation);
+                user.getBalloonManager().getModelEntity().entity().setLocation(balloonLocation);
             }
 
             if (WardrobeSettings.isEnabledBossbar()) {
@@ -278,6 +279,7 @@ public class UserWardrobeManager {
                     PacketManager.sendTeleportPacket(user.getUserBackpackManager().getFirstArmorStandId(), location, false, viewer);
                     PacketManager.ridingMountPacket(NPC_ID, user.getUserBackpackManager().getFirstArmorStandId(), viewer);
                     user.getUserBackpackManager().getArmorStand().setRotation(nextyaw, 0);
+                    //user.getUserBackpackManager().getArmorStand().sendToAll();
                     PacketManager.sendEntityDestroyPacket(user.getUserBackpackManager().getFirstArmorStandId(), outsideViewers);
                 }
 

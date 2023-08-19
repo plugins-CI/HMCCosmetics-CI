@@ -61,11 +61,6 @@ public class CosmeticBalloonType extends Cosmetic {
         if (entity == null || userBalloonManager == null) return;
         if (user.isInWardrobe()) return;
 
-        if (!userBalloonManager.getModelEntity().isValid()) {
-            user.respawnBalloon();
-            return;
-        }
-
         Location newLocation = entity.getLocation();
         Location currentLocation = user.getBalloonManager().getLocation();
         newLocation = newLocation.clone().add(getBalloonOffset());
@@ -73,13 +68,13 @@ public class CosmeticBalloonType extends Cosmetic {
         List<Player> viewer = PacketManager.getViewers(entity.getLocation());
 
         if (entity.getLocation().getWorld() != userBalloonManager.getLocation().getWorld()) {
-            userBalloonManager.getModelEntity().teleport(newLocation);
+            userBalloonManager.getModelEntity().entity().setLocation(newLocation);
             PacketManager.sendTeleportPacket(userBalloonManager.getPufferfishBalloonId(), newLocation, false, viewer);
             return;
         }
 
         Vector velocity = newLocation.toVector().subtract(currentLocation.toVector());
-        userBalloonManager.setVelocity(velocity.multiply(1.1));
+        //userBalloonManager.setVelocity(velocity.multiply(1.1));
         userBalloonManager.setLocation(newLocation);
 
         PacketManager.sendTeleportPacket(userBalloonManager.getPufferfishBalloonId(), newLocation, false, viewer);

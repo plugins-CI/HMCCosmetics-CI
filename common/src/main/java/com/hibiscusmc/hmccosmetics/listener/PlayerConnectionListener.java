@@ -3,6 +3,7 @@ package com.hibiscusmc.hmccosmetics.listener;
 import com.hibiscusmc.hmccosmetics.HMCCosmeticsPlugin;
 import com.hibiscusmc.hmccosmetics.config.DatabaseSettings;
 import com.hibiscusmc.hmccosmetics.database.Database;
+import com.hibiscusmc.hmccosmetics.nms.EntityManager;
 import com.hibiscusmc.hmccosmetics.user.CosmeticUser;
 import com.hibiscusmc.hmccosmetics.user.CosmeticUsers;
 import com.hibiscusmc.hmccosmetics.user.manager.UserEmoteManager;
@@ -33,6 +34,8 @@ public class PlayerConnectionListener implements Listener {
                 );
         }
 
+        EntityManager.getInstance().addPlayer(event.getPlayer());
+
         Runnable run = () -> {
             CosmeticUser user = Database.get(event.getPlayer().getUniqueId());
             CosmeticUsers.addUser(user);
@@ -51,6 +54,7 @@ public class PlayerConnectionListener implements Listener {
     @EventHandler(priority = EventPriority.MONITOR)
     public void onPlayerQuit(@NotNull PlayerQuitEvent event) {
         CosmeticUser user = CosmeticUsers.getUser(event.getPlayer());
+        EntityManager.getInstance().removePlayer(event.getPlayer());
         if (user == null) { // Remove any passengers if a user failed to initialize. Bugs can cause this to happen
             if (!event.getPlayer().getPassengers().isEmpty()) {
                 for (Entity entity : event.getPlayer().getPassengers()) {

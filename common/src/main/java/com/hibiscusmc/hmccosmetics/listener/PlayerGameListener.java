@@ -19,11 +19,15 @@ import com.hibiscusmc.hmccosmetics.cosmetic.types.CosmeticBalloonType;
 import com.hibiscusmc.hmccosmetics.cosmetic.types.CosmeticEmoteType;
 import com.hibiscusmc.hmccosmetics.gui.Menu;
 import com.hibiscusmc.hmccosmetics.gui.Menus;
+import com.hibiscusmc.hmccosmetics.nms.EntityManager;
+import com.hibiscusmc.hmccosmetics.nms.PacketArmorStand;
+import com.hibiscusmc.hmccosmetics.nms.PacketPlayer;
 import com.hibiscusmc.hmccosmetics.user.CosmeticUser;
 import com.hibiscusmc.hmccosmetics.user.CosmeticUsers;
 import com.hibiscusmc.hmccosmetics.user.manager.UserEmoteManager;
 import com.hibiscusmc.hmccosmetics.util.InventoryUtils;
 import com.hibiscusmc.hmccosmetics.util.MessagesUtil;
+import com.hibiscusmc.hmccosmetics.util.ServerUtils;
 import com.hibiscusmc.hmccosmetics.util.packets.PacketManager;
 import org.bukkit.Bukkit;
 import org.bukkit.Location;
@@ -347,7 +351,7 @@ public class PlayerGameListener implements Listener {
             CosmeticBalloonType cosmetic = (CosmeticBalloonType) event.getCosmetic();
             // We know that no other entity besides a regular player will be in the wardrobe
             PacketManager.sendTeleportPacket(user.getBalloonManager().getPufferfishBalloonId(), NPCLocation.add(cosmetic.getBalloonOffset()), false, List.of(user.getPlayer()));
-            user.getBalloonManager().getModelEntity().teleport(NPCLocation.add(cosmetic.getBalloonOffset()));
+            user.getBalloonManager().getModelEntity().entity().setLocation(NPCLocation.add(cosmetic.getBalloonOffset()));
         }
     }
 
@@ -476,23 +480,34 @@ public class PlayerGameListener implements Listener {
             public void onPacketSending(PacketEvent event) {
                 Player player = event.getPlayer(); // Player that's sent
                 int entityID = event.getPacket().getIntegers().read(0);
-                // User
-                CosmeticUser user = CosmeticUsers.getUser(entityID);
-                if (user == null) {
-                    return;
-                }
-
                 List<com.comphenix.protocol.wrappers.Pair<EnumWrappers.ItemSlot, ItemStack>> armor = event.getPacket().getSlotStackPairLists().read(0);
+                if (ServerUtils.getEntity(entityID) == null) return;
 
-                for (EquipmentSlot equipmentSlot : EquipmentSlot.values()) {
-                    CosmeticArmorType cosmeticArmor = (CosmeticArmorType) user.getCosmetic(InventoryUtils.BukkitCosmeticSlot(equipmentSlot));
-                    if (cosmeticArmor == null) continue;
-                    Pair<EnumWrappers.ItemSlot, ItemStack> pair = new Pair<>(InventoryUtils.itemBukkitSlot(cosmeticArmor.getEquipSlot()), cosmeticArmor.getItem());
-                    armor.add(pair);
+                    /*
+                    if (EntityManager.getInstance().getPacketEntity(entityID) instanceof PacketArmorStand entity) {
+                        MessagesUtil.sendDebugMessages("EntityEquipment for " + entityID + " is an armorstand");
+                        Pair<EnumWrappers.ItemSlot, ItemStack> pair = new Pair<>(EnumWrappers.ItemSlot.HEAD, entity.getHelmetStack());
+                        armor.add(pair);
+                    }
+                     */
+                if (EntityManager.getInstance().getPacketEntity(entityID) instanceof PacketPlayer p) {
+                    MessagesUtil.sendDebugMessages("EntityEquipment for " + entityID + " is a player");
+                    CosmeticUser user = CosmeticUsers.getUser(p.getUuid());
+                    if (user == null) {
+                        return;
+                    }
+
+                    for (EquipmentSlot equipmentSlot : EquipmentSlot.values()) {
+                        CosmeticArmorType cosmeticArmor = (CosmeticArmorType) user.getCosmetic(InventoryUtils.BukkitCosmeticSlot(equipmentSlot));
+                        if (cosmeticArmor == null) continue;
+                        Pair<EnumWrappers.ItemSlot, ItemStack> pair = new Pair<>(InventoryUtils.itemBukkitSlot(cosmeticArmor.getEquipSlot()), cosmeticArmor.getItem());
+                        armor.add(pair);
+                    }
                 }
 
                 event.getPacket().getSlotStackPairLists().write(0, armor);
-                MessagesUtil.sendDebugMessages("Equipment for " + user.getPlayer().getName() + " has been updated for " + player.getName());
+
+                //MessagesUtil.sendDebugMessages("Equipment for " + user.getPlayer().getName() + " has been updated for " + player.getName());
             }
         });
     }

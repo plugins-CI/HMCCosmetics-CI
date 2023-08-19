@@ -3,6 +3,7 @@ package com.hibiscusmc.hmccosmetics.nms;
 import com.hibiscusmc.hmccosmetics.cosmetic.CosmeticSlot;
 import com.hibiscusmc.hmccosmetics.cosmetic.types.CosmeticBackpackType;
 import com.hibiscusmc.hmccosmetics.cosmetic.types.CosmeticBalloonType;
+import com.hibiscusmc.hmccosmetics.hooks.modelengine.MegEntityWrapper;
 import com.hibiscusmc.hmccosmetics.user.CosmeticUser;
 import com.hibiscusmc.hmccosmetics.user.manager.UserBalloonManager;
 import org.bukkit.Location;
@@ -12,18 +13,19 @@ import org.bukkit.entity.Player;
 import org.bukkit.inventory.ItemStack;
 
 import java.util.List;
+import java.util.Set;
 
 public interface NMSHandler {
 
     int getNextEntityId();
 
-    Entity getEntity(int entityId);
+    PacketEntity getEntity(int entityId);
 
-    Entity getHMCArmorStand(Location loc);
+    PacketArmorStand getHMCArmorStand(Location loc);
 
-    ArmorStand getMEGEntity(Location loc);
+    <T extends PacketEntity> MegEntityWrapper<T> getMEGEntity(Location loc);
 
-    Entity spawnBackpack(CosmeticUser user, CosmeticBackpackType cosmeticBackpackType);
+    PacketArmorStand spawnBackpack(CosmeticUser user, CosmeticBackpackType cosmeticBackpackType, Set<Player> viewers);
 
     Entity spawnDisplayEntity(Location location, String text);
 
@@ -36,10 +38,6 @@ public interface NMSHandler {
             List<Player> sendTo
     );
 
-    void slotUpdate(
-            Player player,
-            int slot
-    );
 
     void equipmentSlotUpdate(
             int entityId,

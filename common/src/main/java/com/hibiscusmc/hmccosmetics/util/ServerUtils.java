@@ -1,6 +1,8 @@
 package com.hibiscusmc.hmccosmetics.util;
 
+import com.hibiscusmc.hmccosmetics.nms.EntityManager;
 import com.hibiscusmc.hmccosmetics.nms.NMSHandlers;
+import com.hibiscusmc.hmccosmetics.nms.PacketEntity;
 import com.owen1212055.particlehelper.api.particle.MultiParticle;
 import com.owen1212055.particlehelper.api.particle.Particle;
 import com.owen1212055.particlehelper.api.particle.types.*;
@@ -32,8 +34,8 @@ public class ServerUtils {
         };
     }
 
-    public static org.bukkit.entity.Entity getEntity(int entityId) {
-        return NMSHandlers.getHandler().getEntity(entityId);
+    public static PacketEntity getEntity(int entityId) {
+        return EntityManager.getInstance().getPacketEntity(entityId);
     }
 
     public static Color hex2Rgb(String colorStr) {
