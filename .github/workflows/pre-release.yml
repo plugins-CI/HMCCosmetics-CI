@@ -3,7 +3,7 @@ name: Pre release
 on:
   push:
     branches:
-      - master
+      - remapped
   workflow_dispatch:
 
 jobs:
