@@ -2,6 +2,7 @@ package com.hibiscusmc.hmccosmetics.listener;
 
 import com.hibiscusmc.hmccosmetics.HMCCosmeticsPlugin;
 import com.hibiscusmc.hmccosmetics.config.DatabaseSettings;
+import com.hibiscusmc.hmccosmetics.config.Settings;
 import com.hibiscusmc.hmccosmetics.database.Database;
 import com.hibiscusmc.hmccosmetics.user.CosmeticUser;
 import com.hibiscusmc.hmccosmetics.user.CosmeticUsers;
@@ -20,22 +21,44 @@ public class PlayerConnectionListener implements Listener {
     @EventHandler(priority = EventPriority.MONITOR)
     public void onPlayerJoin(@NotNull PlayerJoinEvent event) {
         if (event.getPlayer().isOp() || event.getPlayer().hasPermission("hmccosmetics.notifyupdate")) {
-            if (!HMCCosmeticsPlugin.getLatestVersion().equalsIgnoreCase(HMCCosmeticsPlugin.getInstance().getDescription().getVersion()) && HMCCosmeticsPlugin.getLatestVersion().isEmpty())
+            if (!HMCCosmeticsPlugin.getInstance().getLatestVersion().equalsIgnoreCase(HMCCosmeticsPlugin.getInstance().getDescription().getVersion()) && HMCCosmeticsPlugin.getInstance().getLatestVersion().isEmpty())
                 MessagesUtil.sendMessageNoKey(
                         event.getPlayer(),
                         "<br>" +
                                 "<GRAY>There is a new version of <light_purple><Bold>HMCCosmetics<reset><gray> available!<br>" +
-                                "<GRAY>Current version: <red>" + HMCCosmeticsPlugin.getInstance().getDescription().getVersion() + " <GRAY>| Latest version: <light_purple>" + HMCCosmeticsPlugin.getLatestVersion() + "<br>" +
+                                "<GRAY>Current version: <red>" + HMCCosmeticsPlugin.getInstance().getDescription().getVersion() + " <GRAY>| Latest version: <light_purple>" + HMCCosmeticsPlugin.getInstance().getLatestVersion() + "<br>" +
                                 "<GRAY>Download it on <gold><click:OPEN_URL:'https://www.spigotmc.org/resources/100107/'>Spigot<reset> <gray>or <gold><click:OPEN_URL:'https://polymart.org/resource/1879'>Polymart<reset><gray>!" +
                                 "<br>"
                 );
         }
 
         Runnable run = () -> {
+            if (!event.getPlayer().isOnline()) return; // If a player is no longer online, don't run this.
             CosmeticUser user = Database.get(event.getPlayer().getUniqueId());
             CosmeticUsers.addUser(user);
             MessagesUtil.sendDebugMessages("Run User Join");
-            Bukkit.getScheduler().runTaskLater(HMCCosmeticsPlugin.getInstance(), () -> user.updateCosmetic(), 4);
+
+            // Handle gamemode check
+            if (Settings.getDisabledGamemodes().contains(user.getPlayer().getGameMode().toString())) {
+                user.hideCosmetics(CosmeticUser.HiddenReason.GAMEMODE);
+            } else {
+                if (user.getHiddenReason() != null && user.getHiddenReason().equals(CosmeticUser.HiddenReason.GAMEMODE)) {
+                    user.showCosmetics();
+                }
+            }
+            // Handle world check
+            if (Settings.getDisabledWorlds().contains(user.getPlayer().getWorld().getName())) {
+                user.hideCosmetics(CosmeticUser.HiddenReason.WORLD);
+            } else {
+                if (user.getHiddenReason() != null && user.getHiddenReason().equals(CosmeticUser.HiddenReason.WORLD)) {
+                    user.showCosmetics();
+                }
+            }
+            // And finally, launch an update for the cosmetics they have.
+            Bukkit.getScheduler().runTaskLater(HMCCosmeticsPlugin.getInstance(), () -> {
+                if (user.getPlayer() == null) return;
+                user.updateCosmetic();
+            }, 4);
         };
 
         if (DatabaseSettings.isEnabledDelay()) {
@@ -50,7 +73,10 @@ public class PlayerConnectionListener implements Listener {
     public void onPlayerQuit(@NotNull PlayerQuitEvent event) {
         CosmeticUser user = CosmeticUsers.getUser(event.getPlayer());
         if (user == null) return; // Player never initialized, don't do anything
-        if (user.isInWardrobe()) user.leaveWardrobe();
+        if (user.isInWardrobe()) {
+            user.leaveWardrobe(true);
+            user.getPlayer().setInvisible(false);
+        }
         if (user.getUserEmoteManager().isPlayingEmote()) {
             user.getUserEmoteManager().stopEmote(UserEmoteManager.StopEmoteReason.CONNECTION);
             event.getPlayer().setInvisible(false);

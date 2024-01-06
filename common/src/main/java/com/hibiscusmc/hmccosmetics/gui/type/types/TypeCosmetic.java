@@ -2,16 +2,18 @@ package com.hibiscusmc.hmccosmetics.gui.type.types;
 
 import com.hibiscusmc.hmccosmetics.HMCCosmeticsPlugin;
 import com.hibiscusmc.hmccosmetics.config.Settings;
-import com.hibiscusmc.hmccosmetics.config.serializer.ItemSerializer;
 import com.hibiscusmc.hmccosmetics.cosmetic.Cosmetic;
 import com.hibiscusmc.hmccosmetics.cosmetic.Cosmetics;
 import com.hibiscusmc.hmccosmetics.cosmetic.types.CosmeticArmorType;
 import com.hibiscusmc.hmccosmetics.gui.action.Actions;
 import com.hibiscusmc.hmccosmetics.gui.special.DyeMenu;
 import com.hibiscusmc.hmccosmetics.gui.type.Type;
-import com.hibiscusmc.hmccosmetics.hooks.Hooks;
 import com.hibiscusmc.hmccosmetics.user.CosmeticUser;
 import com.hibiscusmc.hmccosmetics.util.MessagesUtil;
+import me.lojosho.hibiscuscommons.config.serializer.ItemSerializer;
+import me.lojosho.hibiscuscommons.hooks.Hooks;
+import me.lojosho.shaded.configurate.ConfigurationNode;
+import me.lojosho.shaded.configurate.serialize.SerializationException;
 import org.bukkit.Bukkit;
 import org.bukkit.entity.Player;
 import org.bukkit.event.inventory.ClickType;
@@ -21,13 +23,15 @@ import org.bukkit.inventory.meta.ItemMeta;
 import org.bukkit.inventory.meta.SkullMeta;
 import org.jetbrains.annotations.Contract;
 import org.jetbrains.annotations.NotNull;
-import org.spongepowered.configurate.ConfigurationNode;
-import org.spongepowered.configurate.serialize.SerializationException;
 
 import java.util.ArrayList;
 import java.util.List;
 
 public class TypeCosmetic extends Type {
+
+    public TypeCosmetic(String id) {
+        super(id);
+    }
 
     public TypeCosmetic() {
         super("cosmetic");
@@ -153,7 +157,7 @@ public class TypeCosmetic extends Type {
             return itemStack;
         }
 
-        if (!user.canEquipCosmetic(cosmetic) && !config.node("locked-item").virtual()) {
+        if (!user.canEquipCosmetic(cosmetic, true) && !config.node("locked-item").virtual()) {
             MessagesUtil.sendDebugMessages("GUI Locked Item");
             ConfigurationNode lockedItem = config.node("locked-item");
             try {

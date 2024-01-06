@@ -3,20 +3,23 @@ package com.hibiscusmc.hmccosmetics.gui;
 import com.hibiscusmc.hmccosmetics.HMCCosmeticsPlugin;
 import com.hibiscusmc.hmccosmetics.api.events.PlayerMenuOpenEvent;
 import com.hibiscusmc.hmccosmetics.config.Settings;
-import com.hibiscusmc.hmccosmetics.config.serializer.ItemSerializer;
 import com.hibiscusmc.hmccosmetics.cosmetic.Cosmetic;
 import com.hibiscusmc.hmccosmetics.cosmetic.Cosmetics;
 import com.hibiscusmc.hmccosmetics.gui.type.Type;
 import com.hibiscusmc.hmccosmetics.gui.type.Types;
-import com.hibiscusmc.hmccosmetics.hooks.Hooks;
+import com.hibiscusmc.hmccosmetics.gui.type.types.TypeCosmetic;
 import com.hibiscusmc.hmccosmetics.user.CosmeticUser;
 import com.hibiscusmc.hmccosmetics.util.MessagesUtil;
-import com.hibiscusmc.hmccosmetics.util.misc.Adventure;
-import com.hibiscusmc.hmccosmetics.util.misc.StringUtils;
 import dev.triumphteam.gui.builder.item.ItemBuilder;
 import dev.triumphteam.gui.guis.Gui;
 import dev.triumphteam.gui.guis.GuiItem;
 import lombok.Getter;
+import me.lojosho.hibiscuscommons.config.serializer.ItemSerializer;
+import me.lojosho.hibiscuscommons.hooks.Hooks;
+import me.lojosho.hibiscuscommons.util.AdventureUtils;
+import me.lojosho.hibiscuscommons.util.StringUtils;
+import me.lojosho.shaded.configurate.ConfigurationNode;
+import me.lojosho.shaded.configurate.serialize.SerializationException;
 import net.kyori.adventure.text.Component;
 import org.bukkit.Bukkit;
 import org.bukkit.entity.Player;
@@ -24,12 +27,8 @@ import org.bukkit.event.inventory.ClickType;
 import org.bukkit.inventory.ItemStack;
 import org.jetbrains.annotations.Contract;
 import org.jetbrains.annotations.NotNull;
-import org.spongepowered.configurate.ConfigurationNode;
-import org.spongepowered.configurate.serialize.SerializationException;
 
-import java.util.ArrayList;
-import java.util.HashMap;
-import java.util.List;
+import java.util.*;
 import java.util.concurrent.atomic.AtomicInteger;
 
 public class Menu {
@@ -44,7 +43,7 @@ public class Menu {
     private final ConfigurationNode config;
     @Getter
     private final String permissionNode;
-    private final HashMap<Integer, MenuItem> items;
+    private final HashMap<Integer, List<MenuItem>> items;
     @Getter
     private final int refreshRate;
     @Getter
@@ -99,6 +98,8 @@ public class Menu {
                 continue;
             }
 
+            int priority = config.node("priority").getInt(1);
+
             Type type = null;
 
             if (!config.node("type").virtual()) {
@@ -107,7 +108,15 @@ public class Menu {
             }
 
             for (Integer slot : slots) {
-                items.put(slot, new MenuItem(slots, item, type, config));
+                MenuItem menuItem = new MenuItem(slots, item, type, priority, config);
+                if (items.containsKey(slot)) {
+                    List<MenuItem> menuItems = items.get(slot);
+                    menuItems.add(menuItem);
+                    menuItems.sort(priorityCompare);
+                    items.put(slot, menuItems);
+                } else {
+                    items.put(slot, new ArrayList<>(Arrays.asList(menuItem)));
+                }
             }
         }
     }
@@ -125,7 +134,7 @@ public class Menu {
                 return;
             }
         }
-        final Component component = Adventure.MINI_MESSAGE.deserialize(Hooks.processPlaceholders(player, this.title));
+        final Component component = AdventureUtils.MINI_MESSAGE.deserialize(Hooks.processPlaceholders(player, this.title));
         Gui gui = Gui.gui()
                 .title(component)
                 .rows(this.rows)
@@ -188,10 +197,11 @@ public class Menu {
 
                 if (items.containsKey(i)) {
                     // Handles the items
-                    MenuItem item = items.get(i);
-                    updateItem(user, gui, item);
+                    List<MenuItem> menuItems = items.get(i);
+                    MenuItem item = menuItems.get(0);
+                    updateItem(user, gui, i);
 
-                    if (item.type().getId().equalsIgnoreCase("cosmetic")) {
+                    if (item.type() instanceof TypeCosmetic) {
                         Cosmetic cosmetic = Cosmetics.getCosmetic(item.itemConfig().node("cosmetic").getString(""));
                         if (cosmetic == null) continue;
                         if (user.hasCosmeticInSlot(cosmetic)) {
@@ -215,16 +225,23 @@ public class Menu {
             MessagesUtil.sendDebugMessages("Updated menu with title " + title);
             gui.updateTitle(StringUtils.parseStringToString(Hooks.processPlaceholders(user.getPlayer(), title.toString())));
         } else {
-            for (MenuItem item : items.values()) {
-                updateItem(user, gui, item);
+            for (int i = 0; i < gui.getInventory().getSize(); i++) {
+                if (items.containsKey(i)) {
+                    updateItem(user, gui, i);
+                }
             }
         }
     }
 
-    private void updateItem(CosmeticUser user, Gui gui, MenuItem item) {
-        Type type = item.type();
-        for (int slot : item.slots()) {
+    private void updateItem(CosmeticUser user, Gui gui, int slot) {
+        if (!items.containsKey(slot)) return;
+        List<MenuItem> menuItems = items.get(slot);
+        if (menuItems.isEmpty()) return;
+
+        for (MenuItem item : menuItems) {
+            Type type = item.type();
             ItemStack modifiedItem = getMenuItem(user, type, item.itemConfig(), item.item().clone(), slot);
+            if (modifiedItem.getType().isAir()) continue;
             GuiItem guiItem = ItemBuilder.from(modifiedItem).asGuiItem();
             guiItem.setAction(event -> {
                 MessagesUtil.sendDebugMessages("Selected slot " + slot);
@@ -235,6 +252,7 @@ public class Menu {
 
             MessagesUtil.sendDebugMessages("Added " + slot + " as " + guiItem + " in the menu");
             gui.updateItem(slot, guiItem);
+            break;
         }
     }
 
@@ -275,4 +293,6 @@ public class Menu {
         if (permissionNode.isEmpty()) return true;
         return player.isOp() || player.hasPermission(permissionNode);
     }
+
+    public static Comparator<MenuItem> priorityCompare = Comparator.comparing(MenuItem::priority).reversed();
 }
